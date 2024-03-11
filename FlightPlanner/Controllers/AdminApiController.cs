@@ -1,7 +1,7 @@
 ﻿using FlightPlanner.Models;
-using FlightPlanner.Storage;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace FlightPlanner.Controllers
 {
@@ -10,11 +10,22 @@ namespace FlightPlanner.Controllers
     [ApiController]
     public class AdminApiController : ControllerBase
     {
+        private readonly FlightPlannerDbContext _context;
+        private static readonly object _lock = new();
+
+        public AdminApiController(FlightPlannerDbContext context)
+        {
+            _context = context;
+        }
+
         [HttpGet]
         [Route("flights/{id}")]
         public IActionResult GetFlight(int id)
         {
-            var flight = FlightStorage.GetFlightById(id);
+            var flight = _context.Flights
+                .Include(flight => flight.To)
+                .Include(flight => flight.From)
+                .SingleOrDefault(flight => flight.Id == id);
 
             if (flight == null)
             {
@@ -59,10 +70,26 @@ namespace FlightPlanner.Controllers
                 return BadRequest("Departure time must be before arrival time.");
             }
 
-            bool addedSuccessfully = FlightStorage.AddFlight(flight);
-            if (!addedSuccessfully)
+            lock (_lock)
             {
-                return StatusCode(StatusCodes.Status409Conflict, "Flight already exists.");
+                var existingFlight = _context.Flights
+                    .FirstOrDefault(f => f.Carrier == flight.Carrier
+                                         && f.DepartureTime == flight.DepartureTime
+                                         && f.ArrivalTime == flight.ArrivalTime
+                                         && f.From.AirportCode == flight.From.AirportCode
+                                         && f.To.AirportCode == flight.To.AirportCode
+                                         && f.From.Country == flight.From.Country
+                                         && f.To.Country == flight.To.Country
+                                         && f.From.City == flight.From.City
+                                         && f.To.City == flight.To.City);
+
+                if (existingFlight != null)
+                {
+                    return StatusCode(StatusCodes.Status409Conflict, "Flight already exists.");
+                }
+
+                _context.Flights.Add(flight);
+                _context.SaveChanges();
             }
 
             return Created($"api/flights/{flight.Id}", flight);
@@ -71,7 +98,12 @@ namespace FlightPlanner.Controllers
         [HttpDelete("flights/{id}")]
         public IActionResult DeleteFlight(int id)
         {
-            FlightStorage.DeleteFlight(id);
+            var flight = _context.Flights.Find(id);
+            if (flight != null)
+            {
+                _context.Flights.Remove(flight);
+                _context.SaveChanges();
+            }
 
             return Ok();
         }

@@ -1,7 +1,6 @@
 ﻿using FlightPlanner.Models;
-using FlightPlanner.Storage;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace FlightPlanner.Controllers
 {
@@ -9,65 +8,37 @@ namespace FlightPlanner.Controllers
     [ApiController]
     public class AirportsController : ControllerBase
     {
+        private readonly FlightPlannerDbContext _context;
+
+        public AirportsController(FlightPlannerDbContext context)
+        {
+            _context = context;
+        }
+
         [HttpGet("")]
         public ActionResult<IEnumerable<Airport>> Search(string? search)
         {
-
-            List<Airport> airports = new List<Airport>();
-
-            if (FlightStorage._flights.Count > 0)
-            {
-                airports.Add(FlightStorage._flights[0].From);
-            }
-
-
-            foreach (Flight flight in FlightStorage._flights)
-            {
-                bool addFromAirport = true;
-                bool addToAirport = true;
-                foreach (var airport in airports)
-                {
-                    if (IsSameAirport(airport, flight.From) && addFromAirport)
-                    {
-                        addFromAirport = false;
-                    }
-
-                    if (IsSameAirport(airport, flight.To) && addToAirport)
-                    {
-                        addToAirport = false;
-                    }
-                }
-
-                if (addFromAirport)
-                {
-                    airports.Add(flight.From);
-                }
-
-                if (addToAirport)
-                {
-                    airports.Add(flight.To);
-                }
-            }
-
-            if (search == null)
-            {
-                return Ok(airports);
-            }
-
-            var normalizedSearch = search.Trim().ToLower();
-            var matchedAirports = airports
-                .Where(a => a.AirportCode.ToLower().Contains(normalizedSearch) ||
-                            a.City.ToLower().Contains(normalizedSearch) ||
-                            a.Country.ToLower().Contains(normalizedSearch))
+            var flights = _context.Flights
+                .Include(f => f.From) 
+                .Include(f => f.To)
                 .ToList();
 
-            return Ok(matchedAirports);
-        }
+            var airports = flights
+                .SelectMany(flight => new[] { flight.From, flight.To })
+                .DistinctBy(airport => airport.AirportCode)
+                .ToList();
 
-        private static bool IsSameAirport(Airport left, Airport right)
-        {
-            return left.AirportCode == right.AirportCode && left.City == right.City &&
-                   left.Country == right.Country;
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var normalizedSearch = search.Trim().ToLower();
+                airports = airports
+                    .Where(a => a.AirportCode.ToLower().Contains(normalizedSearch) ||
+                                a.City.ToLower().Contains(normalizedSearch) ||
+                                a.Country.ToLower().Contains(normalizedSearch))
+                    .ToList();
+            }
+
+            return Ok(airports);
         }
     }
 }
