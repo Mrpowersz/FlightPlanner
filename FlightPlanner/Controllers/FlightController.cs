@@ -1,6 +1,8 @@
-﻿using FlightPlanner.Models;
+﻿using FlightPlanner.Core.Models;
+using FlightPlanner.Core.Services;
+using FlightPlanner.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using AutoMapper;
 
 namespace FlightPlanner.Controllers
 {
@@ -8,11 +10,13 @@ namespace FlightPlanner.Controllers
     [ApiController]
     public class FlightController : ControllerBase
     {
-        private readonly FlightPlannerDbContext _context;
+        private readonly IFlightService _flightService;
+        private readonly IMapper _mapper;
 
-        public FlightController(FlightPlannerDbContext context)
+        public FlightController(IFlightService flightService, IMapper mapper)
         {
-            _context = context;
+            _flightService = flightService;
+            _mapper = mapper;
         }
 
         [HttpPost("search")]
@@ -28,38 +32,22 @@ namespace FlightPlanner.Controllers
                 return BadRequest("Departure and arrival airports cannot be the same.");
             }
 
-            var flights = _context.Flights
-            .Include(f => f.From)
-            .Include(f => f.To)
-            .Where(f => f.From.AirportCode.ToLower() == request.From.ToLower() &&
-                 f.To.AirportCode.ToLower() == request.To.ToLower() &&
-                 f.DepartureTime.StartsWith(request.DepartureDate.ToString("yyyy-MM-dd")))
-            .ToList();
-
-            var result = new PageResult<Flight>
-            {
-                Page = flights.Any() ? 1 : 0,
-                TotalItems = flights.Count,
-                Items = flights
-            };
-
+            var result = _flightService.SearchFlights(request);
             return Ok(result);
         }
 
         [HttpGet("{id}")]
-        public ActionResult<Flight> GetFlight(int id)
+        public ActionResult<AddFlightResponse> GetFlight(int id)
         {
-            var flight = _context.Flights
-                .Include(f => f.From)
-                .Include(f => f.To)
-                .FirstOrDefault(f => f.Id == id);
-
+            var flight = _flightService.GetFullFlightById(id);
             if (flight == null)
             {
                 return NotFound();
             }
 
-            return Ok(flight);
+            return Ok(_mapper.Map<AddFlightResponse>(flight));
         }
     }
 }
+
+

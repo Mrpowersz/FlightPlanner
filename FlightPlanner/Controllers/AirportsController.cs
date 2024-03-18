@@ -1,6 +1,9 @@
-﻿using FlightPlanner.Models;
+﻿using AutoMapper;
+using FlightPlanner.Core.Models;
+using FlightPlanner.Core.Services;
+using FlightPlanner.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+
 
 namespace FlightPlanner.Controllers
 {
@@ -8,37 +11,21 @@ namespace FlightPlanner.Controllers
     [ApiController]
     public class AirportsController : ControllerBase
     {
-        private readonly FlightPlannerDbContext _context;
+        private readonly IFlightService _flightService;
+        private readonly IMapper _mapper;
 
-        public AirportsController(FlightPlannerDbContext context)
+        public AirportsController(IFlightService flightService, IMapper mapper)
         {
-            _context = context;
+            _flightService = flightService;
+            _mapper = mapper; 
         }
 
         [HttpGet("")]
-        public ActionResult<IEnumerable<Airport>> Search(string? search)
+        public ActionResult<IEnumerable<AirportViewModel>> Search(string? search)
         {
-            var flights = _context.Flights
-                .Include(f => f.From) 
-                .Include(f => f.To)
-                .ToList();
-
-            var airports = flights
-                .SelectMany(flight => new[] { flight.From, flight.To })
-                .DistinctBy(airport => airport.AirportCode)
-                .ToList();
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var normalizedSearch = search.Trim().ToLower();
-                airports = airports
-                    .Where(a => a.AirportCode.ToLower().Contains(normalizedSearch) ||
-                                a.City.ToLower().Contains(normalizedSearch) ||
-                                a.Country.ToLower().Contains(normalizedSearch))
-                    .ToList();
-            }
-
-            return Ok(airports);
+            var airports = _flightService.SearchAirports(search); 
+            var airportViewModels = airports.Select(_mapper.Map<AirportViewModel>).ToList();
+            return Ok(airportViewModels);
         }
     }
 }
