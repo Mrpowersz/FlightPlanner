@@ -1,4 +1,4 @@
-﻿using FlightPlanner.Models;
+﻿using FlightPlanner.Core.Models;
 using FluentValidation;
 
 namespace FlightPlanner.Validations

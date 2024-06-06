@@ -1,7 +1,6 @@
 ﻿using AutoMapper;
 using FlightPlanner.Core.Models;
 using FlightPlanner.Core.Services;
-using FlightPlanner.Models;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -42,19 +41,19 @@ namespace FlightPlanner.Controllers
         [Route("flights")]
         public IActionResult AddFlight([FromBody] AddFlightRequest request)
         {
-                if (request == null)
+            if (request == null)
             {
                 return BadRequest("Invalid request.");
             }
-    
+
             var validationResult = _validator.Validate(request);
             if (!validationResult.IsValid)
             {
                 return BadRequest(validationResult.Errors);
             }
 
-            
-                var flight = _mapper.Map<Flight>(request);
+
+            var flight = _mapper.Map<Flight>(request);
 
             var addedSuccessfully = _flightService.TryAddFlight(flight);
             if (!addedSuccessfully)

@@ -69,29 +69,6 @@ namespace FlightPlanner.Services
             };
         }
 
-        public IEnumerable<Airport> SearchAirports(string search)
-        {
-            var query = _context.Airports.AsQueryable();
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var normalizedSearch = search.Trim().ToLower();
-                query = query.Where(airport => 
-                                         airport.AirportCode.ToLower().Contains(normalizedSearch) ||
-                                         airport.City.ToLower().Contains(normalizedSearch) ||
-                                         airport.Country.ToLower().Contains(normalizedSearch));
-            }
-
-            return query.ToList();
-        }
-
-        public void ClearData()
-        {
-            _context.Flights.RemoveRange(_context.Flights);
-            _context.Airports.RemoveRange(_context.Airports);
-            _context.SaveChanges();
-        }
-
         public bool FlightExists(Flight flight)
         {
             lock (_lock)

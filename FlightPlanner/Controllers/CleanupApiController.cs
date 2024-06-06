@@ -5,20 +5,15 @@ namespace FlightPlanner.Controllers
 {
     [Route("testing-api")]
     [ApiController]
-    public class CleanupApiController : ControllerBase
+    public class CleanupApiController(ICleanupService cleanupService) : ControllerBase
     {
-        private readonly IFlightService _flightService;
-
-        public CleanupApiController(IFlightService flightService)
-        {
-            _flightService = flightService;
-        }
+        private readonly ICleanupService _cleanupService = cleanupService;
 
         [HttpPost]
         [Route("clear")]
         public IActionResult Clear()
         {
-            _flightService.ClearData();
+            _cleanupService.ClearData();
             return Ok();
         }
     }

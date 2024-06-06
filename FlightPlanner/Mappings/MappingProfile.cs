@@ -1,6 +1,5 @@
 ﻿using AutoMapper;
 using FlightPlanner.Core.Models;
-using FlightPlanner.Models;
 
 namespace FlightPlanner.Mappings
 {

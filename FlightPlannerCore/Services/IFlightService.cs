@@ -8,8 +8,6 @@ namespace FlightPlanner.Core.Services
         new void Create(Flight flight);
         bool DeleteFlight(int id);
         PageResult<Flight> SearchFlights(SearchFlightsRequest request);
-        IEnumerable<Airport> SearchAirports(string search);
-        void ClearData();
         bool FlightExists(Flight flight);
         bool TryAddFlight(Flight flight);
     }

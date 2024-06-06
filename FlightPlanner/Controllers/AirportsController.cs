@@ -1,7 +1,6 @@
 ﻿using AutoMapper;
 using FlightPlanner.Core.Models;
 using FlightPlanner.Core.Services;
-using FlightPlanner.Models;
 using Microsoft.AspNetCore.Mvc;
 
 
@@ -11,19 +10,19 @@ namespace FlightPlanner.Controllers
     [ApiController]
     public class AirportsController : ControllerBase
     {
-        private readonly IFlightService _flightService;
+        private readonly IAirportService _airportService;
         private readonly IMapper _mapper;
 
-        public AirportsController(IFlightService flightService, IMapper mapper)
+        public AirportsController(IAirportService airportService, IMapper mapper)
         {
-            _flightService = flightService;
+            _airportService = airportService;
             _mapper = mapper; 
         }
 
         [HttpGet("")]
         public ActionResult<IEnumerable<AirportViewModel>> Search(string? search)
         {
-            var airports = _flightService.SearchAirports(search); 
+            var airports = _airportService.SearchAirports(search);
             var airportViewModels = airports.Select(_mapper.Map<AirportViewModel>).ToList();
             return Ok(airportViewModels);
         }
